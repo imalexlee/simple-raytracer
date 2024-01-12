@@ -1,1 +1,1 @@
-Simple Raytracer built with Zig!
+## Simple Raytracer built with Zig!

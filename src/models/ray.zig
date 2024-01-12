@@ -1,7 +1,5 @@
-const std = @import("std");
-const vector = @import("math_3d/vector.zig");
+const Vec3 = @import("../math_3d/vector.zig").Vec3;
 
-const Vec3 = vector.Vector(3);
 const Self = @This();
 
 orig: Vec3,

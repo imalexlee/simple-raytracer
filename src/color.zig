@@ -1,14 +1,21 @@
 const std = @import("std");
 const math_3d = @import("math_3d/vector.zig");
-const Ray = @import("ray.zig");
+const models = @import("models.zig");
+const assert = std.debug.assert;
 
+const Ray = models.Ray;
 const Vec3 = math_3d.Vector(3);
 
-pub fn writeColor(color: Vec3, writer: std.fs.File.Writer) !void {
+pub fn writeColor(color: Vec3, samples_per_pixel: u32, writer: std.fs.File.Writer) !void {
+    const samples_f: f32 = @floatFromInt(samples_per_pixel);
+    const r: f32 = color.values[0] / samples_f;
+    const g: f32 = color.values[1] / samples_f;
+    const b: f32 = color.values[2] / samples_f;
+
     var temp_buf: [3]u8 = undefined;
-    temp_buf[0] = @intFromFloat(255.0 * @max(0.0, @min(1.0, color.values[0])));
-    temp_buf[1] = @intFromFloat(255.0 * @max(0.0, @min(1.0, color.values[1])));
-    temp_buf[2] = @intFromFloat(255.0 * @max(0.0, @min(1.0, color.values[2])));
+    temp_buf[0] = @intFromFloat(255.0 * @max(0.0, @min(1.0, r)));
+    temp_buf[1] = @intFromFloat(255.0 * @max(0.0, @min(1.0, g)));
+    temp_buf[2] = @intFromFloat(255.0 * @max(0.0, @min(1.0, b)));
 
     try writer.writeAll(temp_buf[0..3]);
 }
