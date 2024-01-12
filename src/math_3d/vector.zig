@@ -92,11 +92,10 @@ pub fn Vector(comptime N: usize) type {
         }
 
         fn randomInUnitSphere() !Self {
-            //while (true) {
-            const vec = try randomInRange(-1.0, 1.0);
-            //   if (vec.length() < 1) return vec;
-            //}
-            return vec;
+            while (true) {
+                const vec = try randomInRange(-1.0, 1.0);
+                if (vec.length() < 1) return vec;
+            }
         }
 
         pub fn randomUnitVector() !Self {
