@@ -1,5 +1,6 @@
 const std = @import("std");
 
+/// returns random f32 [0,1)
 pub fn random() !f32 {
     var prng = std.rand.DefaultPrng.init(blk: {
         var seed: u64 = undefined;

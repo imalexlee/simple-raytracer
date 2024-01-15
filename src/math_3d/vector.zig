@@ -1,5 +1,6 @@
 const std = @import("std");
 const utils = @import("utils.zig");
+const assert = std.debug.assert;
 
 // ready made types
 pub const Vec2 = Vector(2);
@@ -50,6 +51,13 @@ pub fn Vector(comptime N: usize) type {
             const right: @Vector(N, f32) = other.values;
 
             return Self{ .values = left + right };
+        }
+
+        pub fn mult(self: Self, other: Self) Self {
+            const left: @Vector(N, f32) = self.values;
+            const right: @Vector(N, f32) = other.values;
+
+            return Self{ .values = left * right };
         }
 
         pub fn scale(self: Self, factor: f32) Self {
@@ -111,6 +119,23 @@ pub fn Vector(comptime N: usize) type {
             } else {
                 return vec.scale(-1.0);
             }
+        }
+
+        pub fn nearZero(self: Vec3) bool {
+            const s: f32 = 1e-8;
+            return (@abs(self.values[0]) < s and @abs(self.values[1]) < s and @abs(self.values[2]) < s);
+        }
+
+        pub fn reflect(self: Self, other: Self) Self {
+            const b: f32 = self.dot(other);
+            return self.sub(other.scale(2 * b));
+        }
+
+        pub fn refract(uv: *Vec3, n: *Vec3, etai_over_etat: f32) Self {
+            const cos_theta = @min(-uv.dot(n.*), 1.0);
+            const r_out_perp = (uv.add(n.scale(cos_theta))).scale(etai_over_etat);
+            const r_out_parallel = n.scale(-@sqrt(@abs(1.0 - std.math.pow(f32, r_out_perp.length(), 2.0))));
+            return r_out_perp.add(r_out_parallel);
         }
     };
 }

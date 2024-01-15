@@ -2,16 +2,19 @@ const Vec3 = @import("../math_3d/vector.zig").Vec3;
 const Ray = @import("ray.zig");
 const Interval = @import("interval.zig");
 const HitRecord = @import("hit_record.zig");
+const Material = @import("materials.zig");
 
 const Self = @This();
 
 center: Vec3,
 radius: f32,
+mat: *Material,
 
-pub fn init(center: Vec3, radius: f32) Self {
+pub fn init(center: Vec3, radius: f32, material: *Material) Self {
     return Self{
         .center = center,
         .radius = radius,
+        .mat = material,
     };
 }
 
@@ -40,6 +43,7 @@ pub fn hit(self: Self, ray: Ray, ray_t: Interval, hit_record: *HitRecord) bool {
     hit_record.point = ray.at(hit_record.t);
     const outward_normal = (hit_record.point.sub(self.center)).scale(1 / self.radius);
     hit_record.setFaceNormal(ray, outward_normal);
+    hit_record.mat = self.mat;
 
     return true;
 }

@@ -1,5 +1,6 @@
 const Vec3 = @import("../math_3d/vector.zig").Vec3;
 const Ray = @import("ray.zig");
+const Material = @import("materials.zig");
 
 const Self = @This();
 
@@ -7,6 +8,7 @@ point: Vec3,
 normal: Vec3,
 t: f32,
 front_face: bool,
+mat: *Material,
 
 // it is assumed that the outward normal is unit length here
 pub fn setFaceNormal(self: *Self, ray: Ray, outward_normal: Vec3) void {

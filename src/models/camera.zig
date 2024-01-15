@@ -17,6 +17,8 @@ aspect_ratio: f32 = 1.0,
 samples_per_pixel: u32 = 10,
 max_depth: u32 = 30,
 
+vfov: f32 = 90,
+
 center: Vec3 = undefined,
 pixel_delta_u: Vec3 = undefined,
 pixel_delta_v: Vec3 = undefined,
@@ -42,23 +44,27 @@ pub fn render(self: Self, world: SphereList, file: std.fs.File) !void {
     }
 }
 
-pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, samples_per_pixel: ?u32) Self {
+pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, samples_per_pixel: ?u32, vfov: f32) Self {
     var Camera = Self{
         .image_width = image_width,
         .allocator = allocator,
         .aspect_ratio = aspect_ratio,
         .center = Vec3.init(.{ 0.0, 0.0, 0.0 }),
         .samples_per_pixel = samples_per_pixel orelse 10,
+        .vfov = vfov,
     };
 
     const width_f = @as(f32, @floatFromInt(image_width));
     Camera.image_height = @intFromFloat(@max(1.0, width_f / Camera.aspect_ratio));
     const height_f = @as(f32, @floatFromInt(Camera.image_height));
 
-    const viewport_height: f32 = 2.0;
-    const viewport_width: f32 = viewport_height * (width_f / height_f);
     const camera_center = Vec3{ .values = .{ 0.0, 0.0, 0.0 } };
     const focal_length: f32 = 1.0;
+
+    const theta = std.math.degreesToRadians(f32, Camera.vfov);
+    const h = @tan(theta / 2.0);
+    const viewport_height: f32 = 2 * h * focal_length;
+    const viewport_width: f32 = viewport_height * (width_f / height_f);
 
     const viewport_u = Vec3.init(.{ viewport_width, 0.0, 0.0 });
     const viewport_v = Vec3.init(.{ 0.0, -viewport_height, 0.0 });
@@ -111,11 +117,15 @@ fn rayColor(ray: Ray, depth: u32, world: SphereList) Vec3 {
     if (depth == 0) return Vec3.init(.{ 0.0, 0.0, 0.0 });
 
     if (world.hit(ray, Interval.init(0.001, std.math.inf(f32)), &hit_record)) {
-        // normal vector of the point on the sphere
-        const direction = Vec3.randomOnHemisphere(hit_record.normal) catch {};
-        const new_depth = depth -| 1;
-
-        return (rayColor(Ray.init(hit_record.point, direction), new_depth, world)).scale(0.5);
+        var scattered: Ray = undefined;
+        var attenuation: Vec3 = undefined;
+        //std.debug.print("hit record material: {any}\n", .{hit_record.mat.type});
+        if (hit_record.mat.*.scatter(&ray, &hit_record, &attenuation, &scattered)) {
+            const new_depth = depth -| 1;
+            //            std.debug.print("attentuation = {any}\n", .{attenuation.values});
+            return attenuation.mult(rayColor(scattered, new_depth, world));
+        }
+        return Vec3.init(.{ 0.0, 0.0, 0.0 });
     }
 
     const unit_direction = ray.dir.normalize();
