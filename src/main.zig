@@ -13,7 +13,7 @@ pub fn main() !void {
     defer arena.deinit();
 
     const aspect_ratio = 16.0 / 9.0;
-    const image_width = 500;
+    const image_width = 2000;
 
     var lambertian = Material.initLambertion(Vec3.init(.{ 0.5, 0.8, 0.6 }));
     var metal = Material.initMetal(Vec3.init(.{ 0.7, 0.7, 0.7 }));
@@ -46,7 +46,7 @@ pub fn main() !void {
         &lambertian,
     ));
 
-    const camera = Camera.init(allocator, image_width, aspect_ratio, 50, 90);
+    const camera = Camera.init(allocator, image_width, aspect_ratio, 100, 90);
     const file = try std.fs.cwd().createFile("out.ppm", .{});
     defer file.close();
 

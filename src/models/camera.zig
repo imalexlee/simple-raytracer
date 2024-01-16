@@ -17,6 +17,13 @@ aspect_ratio: f32 = 1.0,
 samples_per_pixel: u32 = 10,
 max_depth: u32 = 30,
 
+look_from: Vec3,
+look_at: Vec3,
+v_up: Vec3,
+u: Vec3 = undefined,
+v: Vec3 = undefined,
+w: Vec3 = undefined,
+
 vfov: f32 = 90,
 
 center: Vec3 = undefined,
@@ -49,32 +56,40 @@ pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, s
         .image_width = image_width,
         .allocator = allocator,
         .aspect_ratio = aspect_ratio,
-        .center = Vec3.init(.{ 0.0, 0.0, 0.0 }),
         .samples_per_pixel = samples_per_pixel orelse 10,
         .vfov = vfov,
+        .look_from = Vec3.init(.{ -2, 2, 1 }),
+        .look_at = Vec3.init(.{ 0, 0, -1 }),
+        .v_up = Vec3.init(.{ 0, 1, 0 }),
     };
+
+    Camera.center = Camera.look_from;
+
+    Camera.w = (Camera.look_from.sub(Camera.look_at)).normalize();
+    Camera.u = (Camera.v_up.cross(Camera.w)).normalize();
+    Camera.v = Camera.w.cross(Camera.u);
 
     const width_f = @as(f32, @floatFromInt(image_width));
     Camera.image_height = @intFromFloat(@max(1.0, width_f / Camera.aspect_ratio));
     const height_f = @as(f32, @floatFromInt(Camera.image_height));
 
     const camera_center = Vec3{ .values = .{ 0.0, 0.0, 0.0 } };
-    const focal_length: f32 = 1.0;
+    const focal_length: f32 = (Camera.look_from.sub(Camera.look_at)).length();
 
     const theta = std.math.degreesToRadians(f32, Camera.vfov);
     const h = @tan(theta / 2.0);
     const viewport_height: f32 = 2 * h * focal_length;
     const viewport_width: f32 = viewport_height * (width_f / height_f);
 
-    const viewport_u = Vec3.init(.{ viewport_width, 0.0, 0.0 });
-    const viewport_v = Vec3.init(.{ 0.0, -viewport_height, 0.0 });
+    const viewport_u = Camera.u.scale(viewport_width);
+    const viewport_v = Camera.v.scale(-viewport_height);
 
     Camera.pixel_delta_u = viewport_u.scale(@as(f32, 1.0) / width_f);
     Camera.pixel_delta_v = viewport_v.scale(@as(f32, 1.0) / height_f);
 
     const viewport_upper_left =
         camera_center
-        .sub(Vec3.init(.{ 0.0, 0.0, focal_length }))
+        .sub(Camera.w.scale(focal_length))
         .sub(viewport_u.scale(0.5))
         .sub(viewport_v.scale(0.5));
 
