@@ -46,6 +46,16 @@ pub fn Vector(comptime N: usize) type {
             return Self{ .values = left - right };
         }
 
+        pub fn subScalar(self: Self, value: f32) Self {
+            var values: [N]f32 = undefined;
+
+            for (0..N) |i| {
+                values[i] = self.values[i] - value;
+            }
+
+            return Self{ .values = values };
+        }
+
         pub fn add(self: Self, other: Self) Self {
             const left: @Vector(N, f32) = self.values;
             const right: @Vector(N, f32) = other.values;
@@ -89,7 +99,7 @@ pub fn Vector(comptime N: usize) type {
             };
         }
 
-        fn randomInRange(min: f32, max: f32) !Self {
+        pub fn randomInRange(min: f32, max: f32) !Self {
             var values: [N]f32 = undefined;
 
             for (0..values.len) |i| {
@@ -102,6 +112,16 @@ pub fn Vector(comptime N: usize) type {
         fn randomInUnitSphere() !Self {
             while (true) {
                 const vec = try randomInRange(-1.0, 1.0);
+                if (vec.length() < 1) return vec;
+            }
+        }
+
+        pub fn randomInUnitDisk() !Self {
+            while (true) {
+                const x = try utils.randomInRange(-1.0, 1.0);
+                const y = try utils.randomInRange(-1.0, 1.0);
+                const vec = Vec3.init(.{ x, y, 0.0 });
+
                 if (vec.length() < 1) return vec;
             }
         }

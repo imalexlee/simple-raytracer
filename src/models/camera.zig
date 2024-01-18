@@ -26,6 +26,11 @@ w: Vec3 = undefined,
 
 vfov: f32 = 90,
 
+defocus_angle: f32 = undefined,
+focus_dist: f32 = undefined,
+defocus_disk_u: Vec3 = undefined,
+defocus_disk_v: Vec3 = undefined,
+
 center: Vec3 = undefined,
 pixel_delta_u: Vec3 = undefined,
 pixel_delta_v: Vec3 = undefined,
@@ -58,10 +63,14 @@ pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, s
         .aspect_ratio = aspect_ratio,
         .samples_per_pixel = samples_per_pixel orelse 10,
         .vfov = vfov,
-        .look_from = Vec3.init(.{ -2, 2, 1 }),
-        .look_at = Vec3.init(.{ 0, 0, -1 }),
-        .v_up = Vec3.init(.{ 0, 1, 0 }),
+        .look_from = Vec3.init(.{ 13.0, 2.0, 3.0 }),
+        .look_at = Vec3.init(.{ 0.0, 0.0, 0.0 }),
+        .v_up = Vec3.init(.{ 0.0, 1.0, 0.0 }),
+        .defocus_angle = 0.6,
     };
+
+    //Camera.focus_dist = Camera.look_at.sub(Camera.look_from).length();
+    Camera.focus_dist = 10.0;
 
     Camera.center = Camera.look_from;
 
@@ -73,12 +82,12 @@ pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, s
     Camera.image_height = @intFromFloat(@max(1.0, width_f / Camera.aspect_ratio));
     const height_f = @as(f32, @floatFromInt(Camera.image_height));
 
-    const camera_center = Vec3{ .values = .{ 0.0, 0.0, 0.0 } };
-    const focal_length: f32 = (Camera.look_from.sub(Camera.look_at)).length();
+    //const camera_center = Vec3{ .values = .{ 0.0, 0.0, 0.0 } };
+    //const focal_length: f32 = (Camera.look_from.sub(Camera.look_at)).length();
 
     const theta = std.math.degreesToRadians(f32, Camera.vfov);
     const h = @tan(theta / 2.0);
-    const viewport_height: f32 = 2 * h * focal_length;
+    const viewport_height: f32 = 2 * h * Camera.focus_dist;
     const viewport_width: f32 = viewport_height * (width_f / height_f);
 
     const viewport_u = Camera.u.scale(viewport_width);
@@ -88,10 +97,14 @@ pub fn init(allocator: std.mem.Allocator, image_width: u32, aspect_ratio: f32, s
     Camera.pixel_delta_v = viewport_v.scale(@as(f32, 1.0) / height_f);
 
     const viewport_upper_left =
-        camera_center
-        .sub(Camera.w.scale(focal_length))
+        Camera.center
+        .sub(Camera.w.scale(Camera.focus_dist))
         .sub(viewport_u.scale(0.5))
         .sub(viewport_v.scale(0.5));
+
+    const defocus_radius = Camera.focus_dist * @tan(std.math.degreesToRadians(f32, Camera.defocus_angle));
+    Camera.defocus_disk_u = Camera.u.scale(defocus_radius);
+    Camera.defocus_disk_v = Camera.v.scale(defocus_radius);
 
     const pixel_offset = Camera.pixel_delta_u.add(Camera.pixel_delta_v);
     Camera.pixel00_loc = viewport_upper_left.add(pixel_offset.scale(0.5));
@@ -104,10 +117,17 @@ fn getRay(self: Self, x: u32, y: u32) Ray {
     const pixel_y = self.pixel_delta_v.scale(@floatFromInt(y));
     const pixel_center = self.pixel00_loc.add(pixel_x.add(pixel_y));
     const pixel_sample = pixel_center.add(getRandomSamplePoint(self));
-    const ray_origin = self.center;
+    const ray_origin = if (self.defocus_angle <= 0) self.center else defocusDiskSample(self);
     const ray_direction = pixel_sample.sub(ray_origin);
 
     return Ray.init(ray_origin, ray_direction);
+}
+
+fn defocusDiskSample(self: Self) Vec3 {
+    const p = Vec3.randomInUnitDisk() catch {};
+    const new_x = self.defocus_disk_u.scale(p.values[0]);
+    const new_y = self.defocus_disk_v.scale(p.values[1]);
+    return self.center.add(new_x).add(new_y);
 }
 
 fn getRandomSamplePoint(self: Self) Vec3 {
